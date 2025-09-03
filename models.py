@@ -1,3 +1,7 @@
+"""
+Database models and connection management for Employee Management System
+"""
+
 import pymysql
 import pandas as pd
 from typing import List, Dict, Optional, Any
@@ -237,11 +241,42 @@ class EmployeeDatabase:
     
     def execute_query(self, query: str, params: tuple = None) -> pd.DataFrame:
         """Execute a query and return results as DataFrame"""
+        cursor = self.db_conn.get_cursor()
         try:
-            return pd.read_sql(query, self.db_conn.connection, params=params)
+            if params:
+                cursor.execute(query, params)
+            else:
+                cursor.execute(query)
+            
+            # Fetch results
+            results = cursor.fetchall()
+            
+            # If no results, return empty DataFrame
+            if not results:
+                return pd.DataFrame()
+            
+            # Convert to DataFrame
+            df = pd.DataFrame(results)
+            
+            # Ensure numeric columns are properly typed
+            for col in df.columns:
+                if df[col].dtype == 'object':
+                    # Try to convert to numeric if possible
+                    try:
+                        df[col] = pd.to_numeric(df[col], errors='ignore')
+                    except:
+                        pass
+            
+            return df
+            
         except Exception as e:
             logger.error(f"Error executing query: {e}")
+            logger.error(f"Query: {query}")
+            if params:
+                logger.error(f"Params: {params}")
             return pd.DataFrame()
+        finally:
+            cursor.close()
     
     def close(self):
         """Close database connection"""

@@ -1,3 +1,7 @@
+"""
+Main application entry point for Employee Management System
+"""
+
 import os
 import logging
 from typing import Optional
@@ -87,15 +91,22 @@ class EmployeeManagementSystem:
                 print("\nEmployee Count and Salary Statistics by Department:")
                 print("-" * 55)
                 for _, row in dept_stats.iterrows():
+                    # Safely convert to int/float
+                    emp_count = int(float(row['employee_count'])) if pd.notnull(row['employee_count']) else 0
+                    avg_salary = float(row['avg_salary']) if pd.notnull(row['avg_salary']) else 0
+                    min_salary = float(row['min_salary']) if pd.notnull(row['min_salary']) else 0
+                    max_salary = float(row['max_salary']) if pd.notnull(row['max_salary']) else 0
+                    
                     print(f"{row['department']:<15} | "
-                          f"Employees: {int(row['employee_count']):<3} | "
-                          f"Avg Salary: ${row['avg_salary']:>8,.0f} | "
-                          f"Range: ${row['min_salary']:>6,.0f} - ${row['max_salary']:>6,.0f}")
+                          f"Employees: {emp_count:<3} | "
+                          f"Avg Salary: ${avg_salary:>8,.0f} | "
+                          f"Range: ${min_salary:>6,.0f} - ${max_salary:>6,.0f}")
             else:
                 print("No department data available.")
                 
         except Exception as e:
             logger.error(f"Error in department analysis: {e}")
+            print(f"Error displaying department analysis: {e}")
     
     def display_salary_analysis(self) -> None:
         """Display salary analysis."""
@@ -116,11 +127,20 @@ class EmployeeManagementSystem:
                 print("-" * 50)
                 dept_salary = salary_analysis['by_department']
                 for dept in dept_salary.index:
-                    print(f"{dept:<15} | Avg: ${dept_salary.loc[dept, 'mean']:>8,.0f} | "
-                          f"Median: ${dept_salary.loc[dept, 'median']:>8,.0f}")
+                    try:
+                        avg_sal = float(dept_salary.loc[dept, 'mean']) if pd.notnull(dept_salary.loc[dept, 'mean']) else 0
+                        med_sal = float(dept_salary.loc[dept, 'median']) if pd.notnull(dept_salary.loc[dept, 'median']) else 0
+                        print(f"{dept:<15} | Avg: ${avg_sal:>8,.0f} | "
+                              f"Median: ${med_sal:>8,.0f}")
+                    except Exception as e:
+                        logger.error(f"Error processing department {dept}: {e}")
+                        continue
+            else:
+                print("No salary data available by department.")
                     
         except Exception as e:
             logger.error(f"Error in salary analysis: {e}")
+            print(f"Error displaying salary analysis: {e}")
     
     def display_performance_analysis(self) -> None:
         """Display performance analysis."""

@@ -1,3 +1,7 @@
+"""
+Employee data analysis module
+"""
+
 import pandas as pd
 from typing import Dict, Optional
 import logging
@@ -167,16 +171,45 @@ class EmployeeAnalyzer:
             """
             attendance = self.db.execute_query(att_query, (employee_id,))
             
-            # Calculate metrics
-            avg_performance = performance['performance_score'].mean() if not performance.empty else None
-            total_reviews = len(performance)
-            avg_hours_worked = attendance['hours_worked'].mean() if not attendance.empty else None
-            attendance_rate = len(attendance[attendance['status'] == 'Present']) / len(attendance) * 100 if not attendance.empty else None
+            # Calculate metrics safely
+            avg_performance = None
+            total_reviews = 0
+            avg_hours_worked = None
+            attendance_rate = None
+            
+            # Performance metrics
+            if not performance.empty:
+                try:
+                    # Ensure performance_score is numeric
+                    performance['performance_score'] = pd.to_numeric(performance['performance_score'], errors='coerce')
+                    performance = performance.dropna(subset=['performance_score'])
+                    
+                    if not performance.empty:
+                        avg_performance = float(performance['performance_score'].mean())
+                        total_reviews = len(performance)
+                except Exception as e:
+                    logger.error(f"Error processing performance data: {e}")
+            
+            # Attendance metrics
+            if not attendance.empty:
+                try:
+                    # Ensure hours_worked is numeric
+                    attendance['hours_worked'] = pd.to_numeric(attendance['hours_worked'], errors='coerce')
+                    attendance = attendance.dropna(subset=['hours_worked'])
+                    
+                    if not attendance.empty:
+                        avg_hours_worked = float(attendance['hours_worked'].mean())
+                        present_days = len(attendance[attendance['status'] == 'Present'])
+                        total_days = len(attendance)
+                        if total_days > 0:
+                            attendance_rate = (present_days / total_days) * 100
+                except Exception as e:
+                    logger.error(f"Error processing attendance data: {e}")
             
             return {
                 'employee_info': employee,
-                'performance_reviews': performance.to_dict('records'),
-                'recent_attendance': attendance.to_dict('records'),
+                'performance_reviews': performance.to_dict('records') if not performance.empty else [],
+                'recent_attendance': attendance.to_dict('records') if not attendance.empty else [],
                 'metrics': {
                     'avg_performance': avg_performance,
                     'total_reviews': total_reviews,
